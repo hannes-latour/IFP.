@@ -1,0 +1,25 @@
+
+const int pressurePin1 = A1;
+const int pressurePin0 = A0;  
+
+void setup() {
+  
+  Serial.begin(9600);
+}
+
+void loop() {
+  
+  int sensorValue1 = analogRead(pressurePin1);
+  int sensorValue0 = analogRead(pressurePin0);
+
+
+  
+  Serial.print("Pressure1: ");
+  Serial.println(sensorValue1);
+  Serial.print("Pressure2: ");
+  Serial.println(sensorValue0);
+
+
+  
+  delay(1000);
+}
