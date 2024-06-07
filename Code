@@ -1,0 +1,104 @@
+#include <FastLED.h> //includes a library to control the LED-matrix
+#define NUM_LEDS 64
+#define DATA_PIN 5
+
+const int pressureSensorPin1 = A0;
+const int pressureSensorPin2 = A1;
+
+CRGB leds[NUM_LEDS];
+
+// Variables to store the previous and current row
+int previousRow = -1;
+int currentRow = 3;  
+
+
+const int weightMin = 80;
+const int weightMax = 160;
+
+// Function to calculate weights based on sensor values
+int calculateWeight(int sensorValue) {
+  if (sensorValue >= 3 * weightMin && sensorValue <= 3 * weightMax) {
+    return 3;
+  } else if (sensorValue >= 2 * weightMin && sensorValue <= 2 * weightMax) {
+    return 2;
+  } else if (sensorValue >= weightMin && sensorValue <= weightMax) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+void setup() {
+  // Initialize serial communication
+  Serial.begin(9600);
+
+  // Initialize the FastLED library
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+  FastLED.setBrightness(5); //control the LED brightness
+
+  // Clear the LED matrix
+  FastLED.clear();
+  FastLED.show();
+
+  delay(1000);
+}
+
+void loop() {
+
+  int sensorValue1 = analogRead(pressureSensorPin1);
+  int sensorValue2 = analogRead(pressureSensorPin2);
+
+  // Calculate weights
+  int weight1 = calculateWeight(sensorValue1);
+  int weight2 = calculateWeight(sensorValue2);
+
+  // Determine the row based on weights
+  if (weight1 == 0 && weight2 > 0) {
+    currentRow = 0; // Move to the top row if weight is on sensor2 and no weight on sensor1
+  } else if (weight2 == 0 && weight1 > 0) {
+    currentRow = 6; // Move to the bottom row if weight is on sensor1 and no weight on sensor2
+  } else if ((weight1 > weight2) && (weight2 <= weightMin)) {
+    currentRow = 3 + (weight1 - weight2);
+  } else if ((weight2 > weight1) && (weight1 <= weightMin)) {
+    currentRow = 3 - (weight2 - weight1);
+  } else {
+    currentRow = 3; // Stay in the middle if weights are equal
+  }
+
+
+
+  // Check if the row has changed
+  if (currentRow != previousRow) {
+    // Clear the previous rows
+    if (previousRow != -1) {
+      for (int col = 0; col < 8; col++) {
+        leds[previousRow * 8 + col] = CRGB::Black;
+        leds[(previousRow + 1) * 8 + col] = CRGB::Black;  // Clear the next row
+      }
+    }
+
+    // Set LED colour
+    for (int col = 0; col < 8; col++) {
+      leds[currentRow * 8 + col] = CRGB::White;
+      if (currentRow + 1 < 8) {  
+        leds[(currentRow + 1) * 8 + col] = CRGB::White;
+      }
+    }
+
+    // Update the LED matrix
+    FastLED.show();
+
+   
+    Serial.print("PressurePad1: ");
+    Serial.println(sensorValue1);
+    Serial.print("PressurePad2: ");
+    Serial.println(sensorValue2);
+
+
+    // Update the previous row
+    previousRow = currentRow;
+  }
+
+
+  delay(100);
+}
